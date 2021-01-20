@@ -18,4 +18,22 @@
         <item name="android:textColorPrimary">@color/primaryTextColor</item>
         <item name="android:background">@color/primaryColor</item>
     </style>
+    <!-- Widgets -->
+    <style name="Widget.AudioToDoList.Button.IconOnly" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="iconPadding">0dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">4dp</item>
+        <item name="android:paddingRight">4dp</item>
+        <item name="android:minWidth">24dp</item>
+        <item name="android:minHeight">24dp</item>
+        <item name="iconTint">@color/player_button</item>
+    </style>
+    <style name="Widget.AudioToDoList.Slider" parent="Widget.MaterialComponents.Slider">
+        <item name="trackColorInactive">@color/defaultDarkIconColor</item>
+        <item name="thumbColor">@color/defaultDarkIconColor</item>
+        <item name="thumbRadius">6dp</item>
+    </style>
+
 </resources>

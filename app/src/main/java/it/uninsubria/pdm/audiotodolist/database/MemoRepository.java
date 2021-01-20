@@ -1,18 +1,27 @@
 package it.uninsubria.pdm.audiotodolist.database;
 
+import android.app.Application;
+
 import androidx.lifecycle.LiveData;
 
 import java.util.List;
 
 import it.uninsubria.pdm.audiotodolist.entity.VoiceMemo;
 
+/**
+ * Class that is responsible for the access to multiple tables of the database.
+ */
 public class MemoRepository {
 
     private MemoDAO memoDAO;
-    private LiveData<List<VoiceMemo>>  allMemo = memoDAO.readAllData();
+    private TagDAO tagDAO;
+    private LiveData<List<VoiceMemo>> allMemo;
 
-    public MemoRepository(MemoDAO memoDAO) {
-        this.memoDAO = memoDAO;
+    MemoRepository(Application application) {
+        AppDatabase db = AppDatabase.getInstance(application);
+        memoDAO = db.memoDAO();
+        tagDAO = db.tagDAO();
+        allMemo = memoDAO.readAllData();
     }
 
 }
