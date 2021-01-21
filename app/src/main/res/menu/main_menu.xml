@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/general_group">
+        <item android:id="@+id/g1_subtitle"
+            android:title="@string/general_menu">
+            <menu>
+                <item
+                    android:id="@+id/settings"
+                    android:title="@string/settings"
+                    android:icon="@drawable/ic_settings_24px"/>
+            </menu>
+        </item>
+    </group>
+    <group android:id="@+id/folders_menu">
+        <item android:id="@+id/g2_subtitle"
+            android:title="@string/content_menu">
+            <menu>
+                <group android:checkableBehavior="single">
+                    <item
+                        android:id="@+id/menu_item_all_notes"
+                        android:title="@string/all_notes"
+                        android:icon="@drawable/ic_list_24px"
+                        android:checkable="true" />
+                    <item android:id="@+id/menu_item_user_folders"
+                        android:title="@string/custom_folders"
+                        android:icon="@drawable/ic_folder_24px"
+                        android:checkable="true"/>
+                </group>
+            </menu>
+        </item>
+    </group>
+</menu>
