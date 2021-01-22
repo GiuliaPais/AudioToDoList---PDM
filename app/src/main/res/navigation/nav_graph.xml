@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/memoListFragment">
+    <fragment
+        android:id="@+id/memoListFragment"
+        android:name="it.uninsubria.pdm.audiotodolist.fragments.MemoListFragment"
+        android:label="MemoListFragment" >
+        <action
+            android:id="@+id/memoDetailsAction"
+            app:destination="@id/memoDetailsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/folderFragment"
+        android:name="it.uninsubria.pdm.audiotodolist.fragments.FolderListFragment"
+        android:label="FolderListFragment" >
+        <action
+            android:id="@+id/action_folderFragment_to_memoListFragment"
+            app:destination="@id/memoListFragment" />
+        <action
+            android:id="@+id/action_folderFragment_to_folderDialogFragment"
+            app:destination="@id/folderDialogFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/memoDetailsFragment"
+        android:name="it.uninsubria.pdm.audiotodolist.fragments.MemoDetailsFragment"
+        android:label="MemoDetailsFragment" >
+        <action
+            android:id="@+id/action_memoDetailsFragment_to_memoListFragment"
+            app:destination="@id/memoListFragment" />
+        <argument
+            android:name="isEditMode"
+            app:argType="boolean" />
+        <argument android:name="memo"
+            app:argType="it.uninsubria.pdm.audiotodolist.data.MemoWithTags" />
+    </fragment>
+    <dialog
+        android:id="@+id/folderDialogFragment"
+        android:name="it.uninsubria.pdm.audiotodolist.dialogs.FolderDialogFragment"
+        android:label="FolderDialogFragment" />
+</navigation>

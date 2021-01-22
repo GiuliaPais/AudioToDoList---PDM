@@ -12,4 +12,19 @@
     <string name="new_folder">New folder</string>
     <string name="search">Search</string>
     <string name="folder_fragment_toolbar_title">Custom folders</string>
+    <string name="folder_name_prompt">Insert folder name</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">Ok</string>
+    <string name="required_error">Required</string>
+    <string name="delete">Delete</string>
+    <string name="delete_confirm_msg">Are you sure you want to delete the folder? All notes inside the folder will be deleted too</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="delete_folder">Delete folder</string>
+    <string name="tags">Tags</string>
+    <string name="comments">Comments</string>
+    <string name="confirm">Confirm</string>
+    <string name="undo">Undo</string>
+    <string name="edit">Edit</string>
+    <string name="share">Share</string>
 </resources>

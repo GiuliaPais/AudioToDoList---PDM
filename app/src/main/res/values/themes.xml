@@ -13,6 +13,7 @@
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
         <item name="drawerArrowStyle">@style/Widget.AudioToDoList.DrawerToggleStyle</item>
+        <item name="windowActionModeOverlay">true</item>
     </style>
     <!-- Toolbar theme -->
     <style name="Theme.AudioToDoList.Toolbar">
@@ -31,6 +32,7 @@
         <item name="android:minWidth">24dp</item>
         <item name="android:minHeight">24dp</item>
         <item name="iconTint">@color/player_button</item>
+        <item name="iconSize">32dp</item>
     </style>
     <style name="Widget.AudioToDoList.Slider" parent="Widget.MaterialComponents.Slider">
         <item name="trackColorInactive">@color/defaultDarkIconColor</item>
@@ -40,5 +42,12 @@
     <style name="Widget.AudioToDoList.DrawerToggleStyle" parent="@style/Widget.AppCompat.DrawerArrowToggle">
         <item name="spinBars">true</item>
         <item name="color">@color/primaryTextColor</item>
+    </style>
+    <style name="Widget.AudioToDoList.SelectableRowForeground" parent="">
+        <item name="android:background">@color/primaryTextColor</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+    </style>
+    <style name="Widget.AudioToDoList.SlidableRowBackground" parent="">
+        <item name="android:background">@color/secondaryColor</item>
     </style>
 </resources>

@@ -6,6 +6,7 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Entity(foreignKeys = @ForeignKey(entity = Folder.class,
         parentColumns = "folderName", childColumns = "folder", onDelete = ForeignKey.CASCADE,
         onUpdate = ForeignKey.CASCADE))
-public class VoiceMemo {
+public class VoiceMemo implements Serializable {
     @PrimaryKey
     @NonNull
     @ColumnInfo(index = true)

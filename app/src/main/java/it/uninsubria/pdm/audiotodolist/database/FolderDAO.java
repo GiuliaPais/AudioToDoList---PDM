@@ -24,4 +24,7 @@ public interface FolderDAO {
 
     @Update
     void update(Folder... folder);
+
+    @Query("DELETE FROM FOLDER WHERE FOLDERNAME = :folderName")
+    void deleteFolderByName(String folderName);
 }

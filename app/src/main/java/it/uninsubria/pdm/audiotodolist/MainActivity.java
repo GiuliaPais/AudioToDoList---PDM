@@ -20,8 +20,14 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -30,21 +36,27 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import it.uninsubria.pdm.audiotodolist.data.MemoWithTags;
 import it.uninsubria.pdm.audiotodolist.database.MemoViewModel;
 import it.uninsubria.pdm.audiotodolist.entity.Folder;
+import it.uninsubria.pdm.audiotodolist.entity.VoiceMemo;
 import it.uninsubria.pdm.audiotodolist.fragments.FolderListFragment;
 import it.uninsubria.pdm.audiotodolist.fragments.MemoListFragment;
+import it.uninsubria.pdm.audiotodolist.fragments.MemoListFragmentDirections;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavController.OnDestinationChangedListener, MemoListFragment.OnActionBarListener {
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
-    private ActionBarDrawerToggle drawerToggle;
     private DrawerLayout drawer;
+    private NavController navController;
+    private NavigationView navigationView;
+
     private MemoViewModel viewModel;
     private MediaRecorder recorder;
     private boolean isRecording = false;
     private File folderRoot;
     private String lastFileName;
+    private LocalDateTime now;
 
     // Permissions management
     private boolean permissionRecordGranted = false;
@@ -57,28 +69,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         drawer = findViewById(R.id.drawer);
-        drawerToggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.open, R.string.close);
-        drawer.addDrawerListener(drawerToggle);
-        drawerToggle.syncState();
-        NavigationView navigationView = findViewById(R.id.navigation_view);
-        navigationView.setNavigationItemSelectedListener(this);
+        navController = Navigation.findNavController(this, R.id.memoList);
+        navController.addOnDestinationChangedListener(this);
+        navigationView = findViewById(R.id.navigation_view);
+
+        // Show and Manage the Drawer and Back Icon
+        NavigationUI.setupActionBarWithNavController(this, navController, drawer);
+
+        // Handle Navigation item clicks
+        NavigationUI.setupWithNavController(navigationView, navController);
         permissionRecordGranted = checkPermission(Manifest.permission.RECORD_AUDIO);
         findFolderRoot();
         viewModel = new ViewModelProvider(this).get(MemoViewModel.class);
         if (savedInstanceState == null) {
-           navigationView.setCheckedItem(R.id.menu_item_all_notes);
+           navigationView.setCheckedItem(R.id.memoListFragment);
            loadMemoListFragment();
         }
     }
 
-
-
     @Override
-    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
-        drawerToggle.syncState();
+    public boolean onSupportNavigateUp() {
+        return NavigationUI.navigateUp(navController, drawer);
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -106,13 +118,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void loadFolderFragment() {
-        getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .replace(R.id.memoList, FolderListFragment.class, null)
-                .commit();
-    }
-
     private void loadMemoListFragment() {
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
@@ -132,11 +137,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void findFolderRoot() {
         boolean externalStorageWritable = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
         if (externalStorageWritable) {
-            File folder = getExternalFilesDir(Environment.DIRECTORY_MUSIC);
+            File folder = ContextCompat.getExternalFilesDirs(this, Environment.DIRECTORY_MUSIC)[0];
             if (folder != null) {
                 folderRoot = folder;
             } else {
-                folderRoot = getExternalFilesDir(null);
+                folderRoot = ContextCompat.getExternalFilesDirs(this, null)[0];
             }
             return;
         }
@@ -144,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void startRecording() {
-        LocalDateTime now = LocalDateTime.now();
+        now = LocalDateTime.now();
         String filename = now.toString() + ".3gp";
         recorder = new MediaRecorder();
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -163,22 +168,36 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void stopRecording() {
         recorder.stop();
+        recorder.reset();
         recorder.release();
         recorder = null;
-        //launch intent
+        File file = new File(folderRoot.getAbsolutePath() + "/" + lastFileName);
+        VoiceMemo voiceMemo = new VoiceMemo();
+        voiceMemo.path = file.getAbsolutePath();
+        voiceMemo.dateTime = now;
+        voiceMemo.folder = "ALL";
+        MemoWithTags newMemo = new MemoWithTags();
+        newMemo.voiceMemo = voiceMemo;
+        MemoListFragmentDirections.MemoDetailsAction action = MemoListFragmentDirections.memoDetailsAction(true, newMemo);
+        navController.navigate(action);
     }
 
     @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menu_item_user_folders :
-                loadFolderFragment();
-                break;
-            case R.id.menu_item_all_notes :
-                loadMemoListFragment();
-                break;
+    public void onBackPressed() {
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
         }
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
+    }
+
+    @Override
+    public void onDestinationChanged(@NonNull NavController controller, @NonNull NavDestination destination, @Nullable Bundle arguments) {
+
+    }
+
+    @Override
+    public void onChangeActionBarTitle(String title) {
+        getSupportActionBar().setTitle(title);
     }
 }

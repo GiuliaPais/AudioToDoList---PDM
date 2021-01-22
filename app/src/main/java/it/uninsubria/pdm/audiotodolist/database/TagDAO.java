@@ -15,13 +15,8 @@ import it.uninsubria.pdm.audiotodolist.entity.Tag;
  */
 @Dao
 public interface TagDAO {
-    /**
-     * Gets all the tags associated with the given memo.
-     * @param memoTitle the title of the memo
-     * @return Observable list of tag names
-     */
-    @Query("SELECT TAGNAME FROM TAG WHERE MEMOTITLE LIKE :memoTitle")
-    LiveData<List<String>> getAllTags(String memoTitle);
+    @Query("SELECT * FROM TAG")
+    LiveData<List<Tag>> getAllTags();
 
     @Insert
     void insertTag(Tag tag);

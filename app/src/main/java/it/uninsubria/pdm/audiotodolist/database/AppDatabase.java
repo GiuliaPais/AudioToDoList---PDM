@@ -12,12 +12,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import it.uninsubria.pdm.audiotodolist.entity.Folder;
 import it.uninsubria.pdm.audiotodolist.entity.Tag;
 import it.uninsubria.pdm.audiotodolist.entity.VoiceMemo;
+import it.uninsubria.pdm.audiotodolist.entity.VoiceMemoCrossTags;
 
 /**
  * Implementation of the app database (via Room).
  * Implements the singleton pattern.
  */
-@Database(entities = {VoiceMemo.class, Tag.class, Folder.class}, version = 2, exportSchema = false)
+@Database(entities = {VoiceMemo.class, Tag.class, Folder.class, VoiceMemoCrossTags.class}, version = 4, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -39,6 +40,7 @@ public abstract class AppDatabase extends RoomDatabase {
         if (instance == null) {
             instance = Room.databaseBuilder(context.getApplicationContext(),
                     AppDatabase.class, "AudioToDoListDB")
+                    .fallbackToDestructiveMigration()
                     .addCallback(prePopulateCallBack)
                     .build();
         }
@@ -58,4 +60,6 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract TagDAO tagDAO();
 
     public abstract FolderDAO folderDAO();
+
+    public abstract VoiceMemoCrossTagsDAO voiceMemoCrossTagsDAO();
 }

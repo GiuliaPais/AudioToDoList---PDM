@@ -1,20 +1,30 @@
 package it.uninsubria.pdm.audiotodolist.fragments;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,10 +32,14 @@ import java.util.List;
 import it.uninsubria.pdm.audiotodolist.MainActivity;
 import it.uninsubria.pdm.audiotodolist.R;
 import it.uninsubria.pdm.audiotodolist.database.MemoViewModel;
+import it.uninsubria.pdm.audiotodolist.dialogs.FolderDialogFragment;
 import it.uninsubria.pdm.audiotodolist.entity.Folder;
 
-public class FolderListFragment extends Fragment {
+public class FolderListFragment extends Fragment implements FolderDialogFragment.FolderDialogFragmentListener, FolderAdapter.OnItemClickListener, FolderRecycleTouchHelper.FolderRecycleTouchHelperListener {
+    private static final int DIALOG_FRAGMENT = 1;
     private MemoViewModel viewModel;
+    private LiveData<List<Folder>> folderList;
+    private FolderAdapter adapter;
 
     public FolderListFragment() {
         super(R.layout.folders_fragment);
@@ -37,6 +51,8 @@ public class FolderListFragment extends Fragment {
         setHasOptionsMenu(true);
         ActionBar actionBar = ((MainActivity)getActivity()).getSupportActionBar();
         actionBar.setTitle(R.string.folder_fragment_toolbar_title);
+        viewModel = new ViewModelProvider(requireActivity()).get(MemoViewModel.class);
+        folderList = viewModel.getAllFolders();
     }
 
     @Override
@@ -49,7 +65,7 @@ public class FolderListFragment extends Fragment {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
             case R.id.new_folder :
-                Log.i("FRAGMENT", "New folder clicked");
+                showNewFolderDialog();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -58,14 +74,9 @@ public class FolderListFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        viewModel = new ViewModelProvider(requireActivity()).get(MemoViewModel.class);
-        FolderAdapter adapter = new FolderAdapter(getContext());
-        LiveData<List<Folder>> folderList = viewModel.getAllFolders();
-        if (folderList != null & folderList.getValue() != null) {
-            adapter.setFolderList(folderList.getValue());
-        } else {
-            adapter.setFolderList(new ArrayList<>());
-        }
+        adapter = new FolderAdapter(getContext());
+        adapter.setFolderList(new ArrayList<>());
+        adapter.setOnItemClickListener(this);
         folderList.observe(getViewLifecycleOwner(), folders -> {
             if (folders != null) {
                 adapter.setFolderList(folders);
@@ -76,5 +87,62 @@ public class FolderListFragment extends Fragment {
         RecyclerView recyclerView = view.findViewById(R.id.folderRecycleView);
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        ItemTouchHelper.SimpleCallback itemTouchHelper = new FolderRecycleTouchHelper(0, ItemTouchHelper.LEFT, this);
+        new ItemTouchHelper(itemTouchHelper).attachToRecyclerView(recyclerView);
+    }
+
+    private void showNewFolderDialog() {
+        DialogFragment fragment = new FolderDialogFragment();
+        fragment.setTargetFragment(this, DIALOG_FRAGMENT);
+        fragment.show(getActivity().getSupportFragmentManager(), "new_folder");
+    }
+
+
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        EditText text = dialog.getDialog().findViewById(R.id.folderNameEditText);
+        String folderName = text.getText().toString();
+        if (folderName != null & !folderName.isEmpty()) {
+            Folder newFolder = new Folder(folderName);
+            viewModel.createNewFolder(newFolder);
+        }
+    }
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment dialog) {
+
+    }
+
+    @Override
+    public void onItemClick(View itemView, int position) {
+        Log.i("FOLDER FRAGMENT", "Item clicked!");
+    }
+
+    @Override
+    public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
+        if (direction == 4) {
+            FolderAdapter.FolderViewHolder folderViewHolder = null;
+            if (viewHolder instanceof FolderAdapter.FolderViewHolder) {
+                folderViewHolder = (FolderAdapter.FolderViewHolder) viewHolder;
+            }
+            if (folderViewHolder != null) {
+                final String folderName = folderViewHolder.getTextView().getText().toString();
+                final int itemPosition = folderViewHolder.getAdapterPosition();
+                Context context = viewHolder.itemView.getContext();
+                MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(context);
+                dialogBuilder.setTitle(R.string.delete_folder)
+                        .setMessage(R.string.delete_confirm_msg)
+                        .setPositiveButton(R.string.yes, (dialog, which) -> {
+                            viewModel.deleteFolder(folderName);
+                        })
+                        .setNegativeButton(R.string.no, (dialog, which) -> {
+                            adapter.notifyItemChanged(itemPosition);
+                        })
+                        .create()
+                        .show();
+            }
+        }
     }
 }
