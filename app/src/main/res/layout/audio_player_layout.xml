@@ -14,23 +14,27 @@
         app:layout_constraintEnd_toStartOf="@+id/slider"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:selectionRequired="false"
+        app:singleSelection="true">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/play"
-            style="@style/Widget.AudioToDoList.Button.IconOnly"
+            style="@style/Widget.AudioToDoList.Button.IconOnly.PlayerPlay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            app:icon="@drawable/ic_play_arrow_24px" />
+            android:checkable="true"
+            app:icon="@drawable/play_btn_icon"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/stop"
-            style="@style/Widget.AudioToDoList.Button.IconOnly"
+            style="@style/Widget.AudioToDoList.Button.IconOnly.PlayerStop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            app:icon="@drawable/ic_stop_24px" />
+            app:icon="@drawable/ic_stop_24px"
+            android:checkable="false"/>
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <com.google.android.material.slider.Slider

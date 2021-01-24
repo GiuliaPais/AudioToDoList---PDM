@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.AudioToDoList" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Base.Theme.AudioTodoList" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/primaryColor</item>
         <item name="colorPrimaryVariant">@color/primaryDarkColor</item>
@@ -9,20 +9,28 @@
         <item name="colorSecondary">@color/secondaryColor</item>
         <item name="colorSecondaryVariant">@color/secondaryLightColor</item>
         <item name="colorOnSecondary">@color/secondaryTextColor</item>
+        <!-- Customize your theme here. -->
+        <item name="windowActionModeOverlay">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="drawerArrowStyle">@style/Widget.AudioToDoList.DrawerToggleStyle</item>
+    </style>
+
+    <!-- Light theme -->
+    <style name="Theme.AudioToDoList" parent="Base.Theme.AudioTodoList">
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
-        <item name="drawerArrowStyle">@style/Widget.AudioToDoList.DrawerToggleStyle</item>
-        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeBackground">?attr/colorSecondary</item>
+        <item name="actionMenuTextColor">?attr/colorOnPrimary</item>
     </style>
-    <!-- Toolbar theme -->
+    <!-- Toolbar theme light -->
     <style name="Theme.AudioToDoList.Toolbar">
-        <item name="android:textColorPrimary">@color/primaryTextColor</item>
-        <item name="android:background">@color/primaryColor</item>
-        <item name="iconTint">@color/primaryTextColor</item>
+        <item name="android:textColorPrimary">?attr/colorOnPrimary</item>
+        <item name="iconTint">?attr/colorOnPrimary</item>
+        <item name="android:background">?attr/colorPrimarySurface</item>
     </style>
     <!-- Widgets -->
-    <style name="Widget.AudioToDoList.Button.IconOnly" parent="Widget.MaterialComponents.Button.OutlinedButton">
+    <style name="Widget.AudioToDoList.Button.IconOnly.PlayerPlay" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="iconPadding">0dp</item>
         <item name="strokeWidth">0dp</item>
         <item name="android:insetTop">0dp</item>
@@ -31,12 +39,19 @@
         <item name="android:paddingRight">4dp</item>
         <item name="android:minWidth">24dp</item>
         <item name="android:minHeight">24dp</item>
-        <item name="iconTint">@color/player_button</item>
+        <item name="iconTint">@color/player_button_icon_color</item>
         <item name="iconSize">32dp</item>
+        <item name="android:textColor">@color/player_button_icon_color</item>
+        <item name="backgroundTint">@color/player_button_bg_color</item>
+    </style>
+    <style name="Widget.AudioToDoList.Button.IconOnly.PlayerStop" parent="Widget.AudioToDoList.Button.IconOnly.PlayerPlay">
+        <item name="iconTint">@color/defaultDarkIconColor</item>
+        <item name="android:textColor">@color/defaultDarkIconColor</item>
     </style>
     <style name="Widget.AudioToDoList.Slider" parent="Widget.MaterialComponents.Slider">
         <item name="trackColorInactive">@color/defaultDarkIconColor</item>
         <item name="thumbColor">@color/defaultDarkIconColor</item>
+        <item name="trackColorActive">@color/secondaryColor</item>
         <item name="thumbRadius">6dp</item>
     </style>
     <style name="Widget.AudioToDoList.DrawerToggleStyle" parent="@style/Widget.AppCompat.DrawerArrowToggle">
@@ -44,10 +59,14 @@
         <item name="color">@color/primaryTextColor</item>
     </style>
     <style name="Widget.AudioToDoList.SelectableRowForeground" parent="">
-        <item name="android:background">@color/primaryTextColor</item>
+        <item name="android:background">?attr/colorSurface</item>
         <item name="android:foreground">?attr/selectableItemBackground</item>
     </style>
     <style name="Widget.AudioToDoList.SlidableRowBackground" parent="">
         <item name="android:background">@color/secondaryColor</item>
+    </style>
+    <style name="Widget.AudioTodoList.RecorderFAB" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="backgroundTint">@color/secondaryColor</item>
+        <item name="tint">@color/secondaryTextColor</item>
     </style>
 </resources>

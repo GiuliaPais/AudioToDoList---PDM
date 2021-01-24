@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
@@ -32,8 +33,8 @@ public interface MemoDAO {
      * Inserts one or more new voice memos in the table.
      * @param voiceMemos one or more VoiceMemo objects
      */
-    @Insert
-    void insertMemo(VoiceMemo... voiceMemos);
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    long insertMemo(VoiceMemo voiceMemos);
 
     /**
      * Deletes one or more voice memos from the table.
@@ -41,6 +42,9 @@ public interface MemoDAO {
      */
     @Delete
     void deleteMemo(VoiceMemo... voiceMemos);
+
+    @Query("DELETE FROM VOICEMEMO WHERE TITLE = :name")
+    void deleteByName(String name);
 
     /**
      * Updates one or more voice memos in the table.

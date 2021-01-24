@@ -18,6 +18,9 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavDirections;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -35,11 +38,11 @@ import it.uninsubria.pdm.audiotodolist.database.MemoViewModel;
 import it.uninsubria.pdm.audiotodolist.dialogs.FolderDialogFragment;
 import it.uninsubria.pdm.audiotodolist.entity.Folder;
 
-public class FolderListFragment extends Fragment implements FolderDialogFragment.FolderDialogFragmentListener, FolderAdapter.OnItemClickListener, FolderRecycleTouchHelper.FolderRecycleTouchHelperListener {
-    private static final int DIALOG_FRAGMENT = 1;
+public class FolderListFragment extends Fragment implements FolderAdapter.OnItemClickListener, FolderRecycleTouchHelper.FolderRecycleTouchHelperListener {
     private MemoViewModel viewModel;
     private LiveData<List<Folder>> folderList;
     private FolderAdapter adapter;
+    private FolderDialogFragment.FolderDialogFragmentListener dialogListener;
 
     public FolderListFragment() {
         super(R.layout.folders_fragment);
@@ -49,8 +52,6 @@ public class FolderListFragment extends Fragment implements FolderDialogFragment
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        ActionBar actionBar = ((MainActivity)getActivity()).getSupportActionBar();
-        actionBar.setTitle(R.string.folder_fragment_toolbar_title);
         viewModel = new ViewModelProvider(requireActivity()).get(MemoViewModel.class);
         folderList = viewModel.getAllFolders();
     }
@@ -94,26 +95,28 @@ public class FolderListFragment extends Fragment implements FolderDialogFragment
     }
 
     private void showNewFolderDialog() {
-        DialogFragment fragment = new FolderDialogFragment();
-        fragment.setTargetFragment(this, DIALOG_FRAGMENT);
-        fragment.show(getActivity().getSupportFragmentManager(), "new_folder");
-    }
+        NavController controller = Navigation.findNavController(getActivity(), R.id.memoList);
+        if (dialogListener == null) {
+            dialogListener = new FolderDialogFragment.FolderDialogFragmentListener() {
+                @Override
+                public void onDialogPositiveClick(DialogFragment dialog) {
+                    EditText text = dialog.getDialog().findViewById(R.id.folderNameEditText);
+                    String folderName = text.getText().toString();
+                    if (folderName != null & !folderName.isEmpty()) {
+                        Folder newFolder = new Folder(folderName);
+                        viewModel.createNewFolder(newFolder);
+                    }
+                }
+                @Override
+                public void onDialogNegativeClick(DialogFragment dialog) {
 
-
-    @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
-        EditText text = dialog.getDialog().findViewById(R.id.folderNameEditText);
-        String folderName = text.getText().toString();
-        if (folderName != null & !folderName.isEmpty()) {
-            Folder newFolder = new Folder(folderName);
-            viewModel.createNewFolder(newFolder);
+                }
+            };
         }
+        FolderListFragmentDirections.ActionFolderFragmentToFolderDialogFragment action = FolderListFragmentDirections.actionFolderFragmentToFolderDialogFragment(dialogListener);
+        controller.navigate(action);
     }
 
-    @Override
-    public void onDialogNegativeClick(DialogFragment dialog) {
-
-    }
 
     @Override
     public void onItemClick(View itemView, int position) {

@@ -15,7 +15,7 @@
     <fragment
         android:id="@+id/folderFragment"
         android:name="it.uninsubria.pdm.audiotodolist.fragments.FolderListFragment"
-        android:label="FolderListFragment" >
+        android:label="@string/custom_folders">
         <action
             android:id="@+id/action_folderFragment_to_memoListFragment"
             app:destination="@id/memoListFragment" />
@@ -25,19 +25,23 @@
     </fragment>
     <fragment
         android:id="@+id/memoDetailsFragment"
-        android:name="it.uninsubria.pdm.audiotodolist.fragments.MemoDetailsFragment"
-        android:label="MemoDetailsFragment" >
+        android:name="it.uninsubria.pdm.audiotodolist.fragments.MemoDetailsFragment">
         <action
             android:id="@+id/action_memoDetailsFragment_to_memoListFragment"
             app:destination="@id/memoListFragment" />
         <argument
             android:name="isEditMode"
             app:argType="boolean" />
-        <argument android:name="memo"
+        <argument
+            android:name="memo"
             app:argType="it.uninsubria.pdm.audiotodolist.data.MemoWithTags" />
     </fragment>
     <dialog
         android:id="@+id/folderDialogFragment"
         android:name="it.uninsubria.pdm.audiotodolist.dialogs.FolderDialogFragment"
-        android:label="FolderDialogFragment" />
+        android:label="@string/delete_folder">
+        <argument
+            android:name="eventListener"
+            app:argType="it.uninsubria.pdm.audiotodolist.dialogs.FolderDialogFragment$FolderDialogFragmentListener" />
+    </dialog>
 </navigation>

@@ -2,13 +2,18 @@ package it.uninsubria.pdm.audiotodolist.database;
 
 import android.app.Application;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import it.uninsubria.pdm.audiotodolist.data.DefaultFolders;
 import it.uninsubria.pdm.audiotodolist.data.MemoWithTags;
 import it.uninsubria.pdm.audiotodolist.entity.Folder;
+import it.uninsubria.pdm.audiotodolist.entity.Tag;
 import it.uninsubria.pdm.audiotodolist.entity.VoiceMemo;
 import it.uninsubria.pdm.audiotodolist.entity.VoiceMemoCrossTags;
 
@@ -45,6 +50,87 @@ public class MemoRepository {
         }
     }
 
+    private static class InsertVoiceMemoAsyncTask extends AsyncTask<VoiceMemo, Void, Long> {
+        private MemoDAO memoDAO;
+
+        public InsertVoiceMemoAsyncTask(MemoDAO memoDAO) {
+            this.memoDAO = memoDAO;
+        }
+
+        @Override
+        protected Long doInBackground(VoiceMemo... voiceMemos) {
+            VoiceMemo toInsert = voiceMemos[0];
+            //On conflict try to obtain a unique title and try insertion again
+            long insertedId = memoDAO.insertMemo(toInsert);
+            int i = 1;
+            while (insertedId == -1) {
+                String newTitle = toInsert.title + " (" + i + ")";
+                toInsert.title = newTitle;
+                i++;
+                insertedId = memoDAO.insertMemo(toInsert);
+            }
+            return insertedId;
+        }
+    }
+
+    private static class UpdateVoiceMemoAsyncTask extends AsyncTask<VoiceMemo, Void, Void> {
+        private MemoDAO memoDAO;
+
+        public UpdateVoiceMemoAsyncTask(MemoDAO memoDAO) {
+            this.memoDAO = memoDAO;
+        }
+
+        @Override
+        protected Void doInBackground(VoiceMemo... voiceMemos) {
+            memoDAO.updateMemo(voiceMemos);
+            return null;
+        }
+    }
+
+    private static class ChangeMemoPkAsyncTask extends AsyncTask<VoiceMemo, Void, Long> {
+        private AppDatabase db;
+        private MemoDAO memoDAO;
+
+        public ChangeMemoPkAsyncTask(AppDatabase database, MemoDAO memoDAO) {
+            this.db = database;
+            this.memoDAO = memoDAO;
+        }
+
+        @Override
+        protected Long doInBackground(VoiceMemo... voiceMemos) {
+            VoiceMemo toDelete = voiceMemos[0];
+            VoiceMemo toInsert = voiceMemos[1];
+            db.runInTransaction(() -> {
+                long insertedId = memoDAO.insertMemo(toInsert);
+                int i = 1;
+                while (insertedId == -1) {
+                    String newTitle = toInsert.title + " (" + i + ")";
+                    toInsert.title = newTitle;
+                    i++;
+                    insertedId = memoDAO.insertMemo(toInsert);
+                }
+                memoDAO.deleteMemo(toDelete);
+            });
+            return null;
+        }
+    }
+
+    private static class DeleteMemoAsyncTask extends AsyncTask<String, Void, Void> {
+        private MemoDAO memoDAO;
+
+        public DeleteMemoAsyncTask(MemoDAO memoDAO) {
+            this.memoDAO = memoDAO;
+        }
+
+        @Override
+        protected Void doInBackground(String... strings) {
+            memoDAO.deleteByName(strings[0]);
+            return null;
+        }
+    }
+
+
+    private AppDatabase db;
     private MemoDAO memoDAO;
     private TagDAO tagDAO;
     private FolderDAO folderDAO;
@@ -53,7 +139,7 @@ public class MemoRepository {
     private LiveData<List<MemoWithTags>> allMemos;
 
     MemoRepository(Application application) {
-        AppDatabase db = AppDatabase.getInstance(application);
+        db = AppDatabase.getInstance(application);
         memoDAO = db.memoDAO();
         tagDAO = db.tagDAO();
         folderDAO = db.folderDAO();
@@ -75,11 +161,47 @@ public class MemoRepository {
     }
 
     public LiveData<List<MemoWithTags>> getAllMemosInFolder(String folderName) {
-        if (folderName.equals("ALL")) {
+        if (folderName.equals(DefaultFolders.ALL.name())) {
             return allMemos;
         } else {
             return voiceMemoCrossTagsDAO.getMemosWithTagsByFolder(folderName);
         }
     }
 
+    public Long insertVoiceMemo(VoiceMemo memo) throws ExecutionException, InterruptedException {
+        return new InsertVoiceMemoAsyncTask(memoDAO).execute(memo).get();
+    }
+
+    public void registerMemoChanges(MemoWithTags old, MemoWithTags newMemo) {
+        //Check if the newMemo has a different title (different primary key)
+        boolean sameTitle = old.voiceMemo.title.equals(newMemo.voiceMemo.title);
+        if (sameTitle) {
+            new UpdateVoiceMemoAsyncTask(memoDAO).execute(newMemo.voiceMemo);
+        } else {
+            changeMemoPK(old.voiceMemo, newMemo.voiceMemo);
+        }
+        //Check the tags and register eventually new tags
+        if (newMemo.tagList == null || newMemo.tagList.isEmpty()) {
+            return;
+        }
+        tagDAO.insertTag(newMemo.tagList.toArray(new Tag[newMemo.tagList.size()]));
+        //If there are tags register mappings
+        List<VoiceMemoCrossTags> mappings = new ArrayList<>();
+        for (Tag tag : newMemo.tagList) {
+            VoiceMemoCrossTags x = new VoiceMemoCrossTags();
+            x.title = newMemo.voiceMemo.title;
+            x.tagName = tag.tagName;
+            mappings.add(x);
+        }
+        voiceMemoCrossTagsDAO.insert(mappings.toArray(new VoiceMemoCrossTags[mappings.size()]));
+
+    }
+
+    private void changeMemoPK(VoiceMemo old, VoiceMemo newM) {
+        new ChangeMemoPkAsyncTask(db, memoDAO).execute(old, newM);
+    }
+
+    public void deleteMemo(String memoTitle) {
+        new DeleteMemoAsyncTask(memoDAO).execute(memoTitle);
+    }
 }

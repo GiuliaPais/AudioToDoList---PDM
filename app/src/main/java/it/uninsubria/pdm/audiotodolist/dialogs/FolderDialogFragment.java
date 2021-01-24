@@ -10,11 +10,13 @@ import androidx.fragment.app.DialogFragment;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.io.Serializable;
+
 import it.uninsubria.pdm.audiotodolist.R;
 
 public class FolderDialogFragment extends DialogFragment {
 
-    public interface FolderDialogFragmentListener {
+    public interface FolderDialogFragmentListener extends Serializable {
         void onDialogPositiveClick(DialogFragment dialog);
         void onDialogNegativeClick(DialogFragment dialog);
     }
@@ -25,7 +27,7 @@ public class FolderDialogFragment extends DialogFragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         try {
-            listener = (FolderDialogFragmentListener) getTargetFragment();
+            listener = FolderDialogFragmentArgs.fromBundle(getArguments()).getEventListener();
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString()
                     + " must implement FolderDialogFragmentListener interface");
