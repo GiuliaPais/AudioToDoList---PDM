@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="150dp">
+    android:layout_height="180dp">
+
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
         android:id="@+id/memo_item_background"
-        style="@style/Widget.AudioToDoList.SlidableRowBackground">
+        style="@style/Widget.AudioToDoList.SlidableRowBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <TextView
             android:id="@+id/deleteText"
@@ -17,15 +19,16 @@
             android:layout_marginEnd="32dp"
             android:layout_marginBottom="32dp"
             android:drawableLeft="@drawable/ic_delete_24px"
+            android:drawableTint="?attr/colorOnSecondary"
             android:gravity="center"
             android:text="@string/delete"
             android:textAllCaps="true"
+            android:textColor="?attr/colorOnSecondary"
             android:textSize="18sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:textColor="?attr/colorOnSecondary"
-            android:drawableTint="?attr/colorOnSecondary"/>
+            app:layout_constraintTop_toTopOf="parent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -50,21 +53,38 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <TextView
+            android:id="@+id/folderTextView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:drawablePadding="6dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="6dp"
+            android:text="folder"
+            app:drawableLeftCompat="@drawable/ic_folder_24px"
+            app:drawableTint="@color/defaultDarkIconColor"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/memoTitle" />
+
         <FrameLayout
             android:id="@+id/playerContainer"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/chipGroup"
+            app:layout_constraintBottom_toTopOf="@+id/horizontalScrollView2"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/memoTitle">
+            app:layout_constraintTop_toBottomOf="@+id/folderTextView">
 
             <include
                 layout="@layout/audio_player_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
+
         </FrameLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -74,31 +94,44 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:background="@color/subtleDividerColor"
-            app:layout_constraintBottom_toTopOf="@+id/chipGroup"
+            app:layout_constraintBottom_toTopOf="@+id/horizontalScrollView2"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroup"
+        <HorizontalScrollView
+            android:id="@+id/horizontalScrollView2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:singleLine="true">
+            app:layout_constraintStart_toStartOf="parent">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/addTagChip"
-                android:layout_width="wrap_content"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroup"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/addTag"
-                app:chipIcon="@drawable/ic_add_24px" />
-        </com.google.android.material.chip.ChipGroup>
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:clickable="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:singleLine="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/addTagChip"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:text="@string/addTag"
+                    android:theme="@style/Theme.MaterialComponents.Light"
+                    app:chipIcon="@drawable/ic_add_24px" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

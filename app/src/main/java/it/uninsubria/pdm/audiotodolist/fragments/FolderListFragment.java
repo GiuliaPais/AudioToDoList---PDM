@@ -120,7 +120,11 @@ public class FolderListFragment extends Fragment implements FolderAdapter.OnItem
 
     @Override
     public void onItemClick(View itemView, int position) {
-        Log.i("FOLDER FRAGMENT", "Item clicked!");
+        //Set the current selected folder in the view model
+        Folder selected = adapter.getFolderList().get(position);
+        viewModel.setSelectedFolder(selected.folderName);
+        //Navigate
+        Navigation.findNavController(requireActivity(), R.id.memoList).navigate(R.id.memoListFragment);
     }
 
     @Override

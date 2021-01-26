@@ -24,4 +24,10 @@ public interface TagDAO {
 
     @Delete
     void deleteTag(Tag tag);
+
+    @Query("DELETE FROM TAG " +
+            "WHERE TAGNAME NOT IN " +
+            "(SELECT DISTINCT TAGNAME " +
+            "FROM VOICEMEMOCROSSTAGS)")
+    void tagCleanup();
 }

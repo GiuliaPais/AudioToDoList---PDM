@@ -2,8 +2,8 @@
 <resources>
     <!-- Dark theme -->
     <style name="Theme.AudioToDoList" parent="Base.Theme.AudioTodoList">
-        <item name="actionModeBackground">?attr/colorSecondary</item>
-        <item name="actionMenuTextColor">?attr/colorOnPrimary</item>
+        <item name="actionModeBackground">@color/primaryDarkColor</item>
+        <item name="actionMenuTextColor">@color/primaryTextColor</item>
     </style>
     <!-- Toolbar theme -->
     <style name="Theme.AudioToDoList.Toolbar">
@@ -50,5 +50,8 @@
     <style name="Widget.AudioTodoList.RecorderFAB" parent="Widget.MaterialComponents.FloatingActionButton">
         <item name="backgroundTint">?attr/colorSecondary</item>
         <item name="tint">?attr/colorOnSecondary</item>
+    </style>
+    <style name="Widget.AudioTodoList.RecordBottomSheet" parent="">
+        <item name="android:background">@color/sheetBackground</item>
     </style>
 </resources>

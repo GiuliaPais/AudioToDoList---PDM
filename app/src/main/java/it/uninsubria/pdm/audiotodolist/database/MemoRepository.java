@@ -2,10 +2,12 @@ package it.uninsubria.pdm.audiotodolist.database;
 
 import android.app.Application;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -129,6 +131,85 @@ public class MemoRepository {
         }
     }
 
+    private static class DeleteFilesAsync extends AsyncTask<String, Void, Boolean> {
+        private MemoDAO memoDAO;
+
+        public DeleteFilesAsync(MemoDAO memoDAO) {
+            this.memoDAO = memoDAO;
+        }
+
+        @Override
+        protected Boolean doInBackground(String... strings) {
+            List<VoiceMemo> memos = memoDAO.readAllDataInFolder(strings[0]);
+            int deleted = 0;
+            for (VoiceMemo v : memos) {
+                File file = new File(v.path);
+                if (file.exists()) {
+                    deleted = file.delete() ? deleted++ : deleted;
+                }
+            }
+            if (deleted == memos.size()) {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private static class InsertTagAsyncTask extends AsyncTask<Tag, Void, Void> {
+        private TagDAO tagDAO;
+
+        public InsertTagAsyncTask(TagDAO tagDAO) {
+            this.tagDAO = tagDAO;
+        }
+
+        @Override
+        protected Void doInBackground(Tag... tags) {
+            tagDAO.insertTag(tags);
+            return null;
+        }
+    }
+
+    private static class InsertMemoTagsMappingsAsyncTask extends AsyncTask<VoiceMemoCrossTags, Void, Void> {
+        private VoiceMemoCrossTagsDAO dao;
+
+        public InsertMemoTagsMappingsAsyncTask(VoiceMemoCrossTagsDAO dao) {
+            this.dao = dao;
+        }
+
+        @Override
+        protected Void doInBackground(VoiceMemoCrossTags... voiceMemoCrossTags) {
+            dao.insert(voiceMemoCrossTags);
+            return null;
+        }
+    }
+
+    private static class DeleteMemoTagsMappingsAsyncTask extends AsyncTask<VoiceMemoCrossTags, Void, Void> {
+        private VoiceMemoCrossTagsDAO dao;
+
+        public DeleteMemoTagsMappingsAsyncTask(VoiceMemoCrossTagsDAO dao) {
+            this.dao = dao;
+        }
+
+        @Override
+        protected Void doInBackground(VoiceMemoCrossTags... voiceMemoCrossTags) {
+            dao.delete(voiceMemoCrossTags);
+            return null;
+        }
+    }
+
+    private static class TagCleanupAsync extends AsyncTask<Void, Void, Void> {
+        private TagDAO tagDAO;
+
+        public TagCleanupAsync(TagDAO tagDAO) {
+            this.tagDAO = tagDAO;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            tagDAO.tagCleanup();
+            return null;
+        }
+    }
 
     private AppDatabase db;
     private MemoDAO memoDAO;
@@ -157,19 +238,27 @@ public class MemoRepository {
     }
 
     public void deleteFolder(String folderName) {
+        new DeleteFilesAsync(memoDAO).execute(folderName);
         new DeleteFolderAsyncTask(folderDAO).execute(folderName);
     }
 
-    public LiveData<List<MemoWithTags>> getAllMemosInFolder(String folderName) {
-        if (folderName.equals(DefaultFolders.ALL.name())) {
-            return allMemos;
-        } else {
-            return voiceMemoCrossTagsDAO.getMemosWithTagsByFolder(folderName);
+    public LiveData<List<MemoWithTags>> getAllMemosInFolderWithTags(String folderName, List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            if (folderName.equals(DefaultFolders.ALL.name())) {
+                return allMemos;
+            } else {
+                return voiceMemoCrossTagsDAO.getMemosWithTagsByFolder(folderName);
+            }
         }
+        return voiceMemoCrossTagsDAO.getMemosByFolderAndTag(folderName, tags.toArray(new String[0]));
     }
 
     public Long insertVoiceMemo(VoiceMemo memo) throws ExecutionException, InterruptedException {
         return new InsertVoiceMemoAsyncTask(memoDAO).execute(memo).get();
+    }
+
+    public LiveData<MemoWithTags> getSelectedMemo(String title) {
+        return voiceMemoCrossTagsDAO.getMemoWithTags(title);
     }
 
     public void registerMemoChanges(MemoWithTags old, MemoWithTags newMemo) {
@@ -182,9 +271,9 @@ public class MemoRepository {
         }
         //Check the tags and register eventually new tags
         if (newMemo.tagList == null || newMemo.tagList.isEmpty()) {
-            return;
+            return ;
         }
-        tagDAO.insertTag(newMemo.tagList.toArray(new Tag[newMemo.tagList.size()]));
+        new InsertTagAsyncTask(tagDAO).execute(newMemo.tagList.toArray(new Tag[0]));
         //If there are tags register mappings
         List<VoiceMemoCrossTags> mappings = new ArrayList<>();
         for (Tag tag : newMemo.tagList) {
@@ -193,8 +282,7 @@ public class MemoRepository {
             x.tagName = tag.tagName;
             mappings.add(x);
         }
-        voiceMemoCrossTagsDAO.insert(mappings.toArray(new VoiceMemoCrossTags[mappings.size()]));
-
+        insertMappings(mappings.toArray(new VoiceMemoCrossTags[0]));
     }
 
     private void changeMemoPK(VoiceMemo old, VoiceMemo newM) {
@@ -203,5 +291,44 @@ public class MemoRepository {
 
     public void deleteMemo(String memoTitle) {
         new DeleteMemoAsyncTask(memoDAO).execute(memoTitle);
+    }
+
+    public void insertTags(Tag... tags) {
+        new InsertTagAsyncTask(tagDAO).execute(tags);
+    }
+
+    private void insertMappings(VoiceMemoCrossTags... mappings) {
+        new InsertMemoTagsMappingsAsyncTask(voiceMemoCrossTagsDAO).execute(mappings);
+    }
+
+    private void deleteMappings(VoiceMemoCrossTags... mappings) {
+        new DeleteMemoTagsMappingsAsyncTask(voiceMemoCrossTagsDAO).execute(mappings);
+    }
+
+    public void addTagsToMemo(VoiceMemo memo, Tag... tags) {
+        List<VoiceMemoCrossTags> mappings = new ArrayList<>();
+        for (Tag tag : tags) {
+            VoiceMemoCrossTags x = new VoiceMemoCrossTags();
+            x.title = memo.title;
+            x.tagName = tag.tagName;
+            mappings.add(x);
+        }
+        insertMappings(mappings.toArray(new VoiceMemoCrossTags[0]));
+    }
+
+    public void removeTagsFromMemo(VoiceMemo memo, Tag... tags) {
+        List<VoiceMemoCrossTags> mappings = new ArrayList<>();
+        for (Tag tag : tags) {
+            VoiceMemoCrossTags x = new VoiceMemoCrossTags();
+            x.title = memo.title;
+            x.tagName = tag.tagName;
+            mappings.add(x);
+        }
+        deleteMappings(mappings.toArray(new VoiceMemoCrossTags[0]));
+        new TagCleanupAsync(tagDAO).execute();
+    }
+
+    public LiveData<List<Tag>> getAllTags() {
+        return tagDAO.getAllTags();
     }
 }

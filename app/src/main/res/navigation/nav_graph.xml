@@ -3,7 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/memoListFragment">
+    app:startDestination="@id/allMemoListFragment">
+    <fragment
+        android:id="@+id/allMemoListFragment"
+        android:name="it.uninsubria.pdm.audiotodolist.fragments.MemoListAllNotesFragment"
+        android:label="@string/all_notes">
+        <action
+            android:id="@+id/action_allMemoListFragment_to_memoDetailsFragment"
+            app:destination="@id/memoDetailsFragment" />
+    </fragment>
     <fragment
         android:id="@+id/memoListFragment"
         android:name="it.uninsubria.pdm.audiotodolist.fragments.MemoListFragment"
@@ -11,6 +19,9 @@
         <action
             android:id="@+id/memoDetailsAction"
             app:destination="@id/memoDetailsFragment" />
+        <action
+            android:id="@+id/action_memoListFragment_to_allMemoListFragment"
+            app:destination="@id/allMemoListFragment" />
     </fragment>
     <fragment
         android:id="@+id/folderFragment"
@@ -22,6 +33,9 @@
         <action
             android:id="@+id/action_folderFragment_to_folderDialogFragment"
             app:destination="@id/folderDialogFragment" />
+        <action
+            android:id="@+id/action_folderFragment_to_memoDetailsFragment"
+            app:destination="@id/memoDetailsFragment" />
     </fragment>
     <fragment
         android:id="@+id/memoDetailsFragment"
@@ -32,9 +46,18 @@
         <argument
             android:name="isEditMode"
             app:argType="boolean" />
+        <action
+            android:id="@+id/action_memoDetailsFragment_to_allMemoListFragment"
+            app:destination="@id/allMemoListFragment" />
         <argument
-            android:name="memo"
-            app:argType="it.uninsubria.pdm.audiotodolist.data.MemoWithTags" />
+            android:name="isTagDialogOpen"
+            app:argType="boolean" />
+        <argument
+            android:name="memoTitle"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_memoDetailsFragment_to_tagsDialogFragment"
+            app:destination="@id/tagsDialogFragment" />
     </fragment>
     <dialog
         android:id="@+id/folderDialogFragment"
@@ -43,5 +66,11 @@
         <argument
             android:name="eventListener"
             app:argType="it.uninsubria.pdm.audiotodolist.dialogs.FolderDialogFragment$FolderDialogFragmentListener" />
+    </dialog>
+    <dialog android:id="@+id/tagsDialogFragment"
+        android:name="it.uninsubria.pdm.audiotodolist.dialogs.TagsDialogFragment">
+        <argument
+            android:name="listener"
+            app:argType="it.uninsubria.pdm.audiotodolist.dialogs.TagsDialogFragment$TagsDialogFragmentListener" />
     </dialog>
 </navigation>

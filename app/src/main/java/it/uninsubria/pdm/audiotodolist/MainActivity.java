@@ -1,21 +1,19 @@
 package it.uninsubria.pdm.audiotodolist;
 
 import android.Manifest;
-import android.content.ContentResolver;
-import android.content.ContentValues;
-import android.content.Intent;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.media.MediaExtractor;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaRecorder;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Log;
+import android.os.SystemClock;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.Chronometer;
+import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,10 +28,12 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
+import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,18 +45,21 @@ import it.uninsubria.pdm.audiotodolist.data.DefaultFolders;
 import it.uninsubria.pdm.audiotodolist.data.MemoWithTags;
 import it.uninsubria.pdm.audiotodolist.database.MemoViewModel;
 import it.uninsubria.pdm.audiotodolist.entity.VoiceMemo;
-import it.uninsubria.pdm.audiotodolist.fragments.MemoDetailsFragment;
-import it.uninsubria.pdm.audiotodolist.fragments.MemoDetailsFragmentDirections;
+import it.uninsubria.pdm.audiotodolist.fragments.FolderListFragmentDirections;
+import it.uninsubria.pdm.audiotodolist.fragments.MemoListAllNotesFragmentDirections;
 import it.uninsubria.pdm.audiotodolist.fragments.MemoListFragment;
 import it.uninsubria.pdm.audiotodolist.fragments.MemoListFragmentDirections;
 
-public class MainActivity extends AppCompatActivity implements NavController.OnDestinationChangedListener, MemoListFragment.OnActionBarListener {
+public class MainActivity extends AppCompatActivity implements NavController.OnDestinationChangedListener, MemoListFragment.OnActionBarListener, NavigationView.OnNavigationItemSelectedListener {
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
     private DrawerLayout drawer;
+    private FrameLayout bottom_sheet;
+    private Chronometer bottom_sheet_timer;
     private NavController navController;
     private NavigationView navigationView;
     private Toolbar toolbar;
+    private SwitchMaterial nightModeSwitch;
 
     private MemoViewModel viewModel;
     private MediaRecorder recorder;
@@ -69,29 +72,50 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
     private boolean permissionRecordGranted = false;
     private String[] permissionsToGrant = {Manifest.permission.RECORD_AUDIO};
 
+    private SharedPreferences preferences;
+    private int currentUIMode;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        preferences = getPreferences(Context.MODE_PRIVATE);
+        currentUIMode = preferences.getInt(getResources().getString(R.string.pref_night_mode), AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         setContentView(R.layout.activity_main);
         toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
         drawer = findViewById(R.id.drawer);
+        bottom_sheet = findViewById(R.id.sheetContainer);
+        bottom_sheet_timer = bottom_sheet.findViewById(R.id.elapsed);
         navController = Navigation.findNavController(this, R.id.memoList);
         navController.addOnDestinationChangedListener(this);
         navigationView = findViewById(R.id.navigation_view);
-
+        nightModeSwitch = (SwitchMaterial) navigationView.getMenu().findItem(R.id.nightModeToggle).getActionView();
+        setSupportActionBar(toolbar);
         // Show and Manage the Drawer and Back Icon
-        NavigationUI.setupActionBarWithNavController(this, navController, drawer);
-
-        // Handle Navigation item clicks
-        NavigationUI.setupWithNavController(navigationView, navController);
+        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(R.id.allMemoListFragment, R.id.memoListFragment)
+                .setOpenableLayout(drawer)
+                .build();
+        NavigationUI.setupWithNavController(toolbar, navController, appBarConfiguration);
+        navigationView.setNavigationItemSelectedListener(this);
+        if (isUsingDarkMode()) {
+            nightModeSwitch.setChecked(true);
+        } else {
+            nightModeSwitch.setChecked(false);
+        }
+        nightModeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentUIMode = AppCompatDelegate.MODE_NIGHT_YES;
+            } else {
+                currentUIMode = AppCompatDelegate.MODE_NIGHT_NO;
+            }
+            preferences.edit().putInt(getResources().getString(R.string.pref_night_mode), currentUIMode).apply();
+            AppCompatDelegate.setDefaultNightMode(currentUIMode);
+        });
         permissionRecordGranted = checkPermission(Manifest.permission.RECORD_AUDIO);
         findFolderRoot();
         viewModel = new ViewModelProvider(this).get(MemoViewModel.class);
         if (savedInstanceState == null) {
-           navigationView.setCheckedItem(R.id.memoListFragment);
-           loadMemoListFragment();
+            navController.navigate(R.id.allMemoListFragment);
+            getSupportActionBar().setTitle(R.string.all_notes);
         }
     }
 
@@ -119,20 +143,18 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
         }
         if (!isRecording) {
             isRecording = true;
-            FloatingActionButton recordBtn = findViewById(R.id.recordButton);
+            bottom_sheet.setVisibility(View.VISIBLE);
+            bottom_sheet_timer.setBase(SystemClock.elapsedRealtime());
+            bottom_sheet_timer.start();
             startRecording();
         } else {
             isRecording = false;
+            bottom_sheet.setVisibility(View.GONE);
+            bottom_sheet_timer.stop();
             stopRecording();
         }
     }
 
-    private void loadMemoListFragment() {
-        getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .replace(R.id.memoList, MemoListFragment.class, null)
-                .commit();
-    }
 
     private boolean checkPermission(String permission) {
         if (permission.equals(Manifest.permission.RECORD_AUDIO)) {
@@ -153,7 +175,6 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
                 if (!folder.exists()) {
                     folder.mkdir();
                 }
-                Log.i("MAIN", "Folder path (external): " + folder.getAbsolutePath());
                 folderRoot = folder;
                 return;
             }
@@ -162,7 +183,6 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
         if (!folder.exists()) {
             folder.mkdir();
         }
-        Log.i("MAIN", "Folder path (internal): " + folder.getAbsolutePath());
         folderRoot = folder;
     }
 
@@ -180,7 +200,6 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
             lastFileName = filename;
         } catch (IOException e) {
             e.printStackTrace();
-            //inserire dialog?
         }
     }
 
@@ -191,10 +210,6 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
         recorder = null;
         String filePath = folderRoot.getAbsolutePath() + "/" + lastFileName;
         File file = new File(filePath);
-        if (!file.exists()) {
-            //launch error
-            return;
-        }
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         retriever.setDataSource(filePath);
         String durationToParse = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
@@ -214,8 +229,17 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
         }
         MemoWithTags newMemo = new MemoWithTags();
         newMemo.voiceMemo = voiceMemo;
-        MemoListFragmentDirections.MemoDetailsAction action = MemoListFragmentDirections.memoDetailsAction(true, newMemo);
-        navController.navigate(action);
+        if (navController.getCurrentDestination().getId() == R.id.allMemoListFragment) {
+            MemoListAllNotesFragmentDirections.ActionAllMemoListFragmentToMemoDetailsFragment action =
+                    MemoListAllNotesFragmentDirections.actionAllMemoListFragmentToMemoDetailsFragment(true, false, newMemo.voiceMemo.title);
+            navController.navigate(action);
+        } else if (navController.getCurrentDestination().getId() == R.id.memoListFragment) {
+            MemoListFragmentDirections.MemoDetailsAction action = MemoListFragmentDirections.memoDetailsAction(true, false, newMemo.voiceMemo.title);
+            navController.navigate(action);
+        } else if (navController.getCurrentDestination().getId() == R.id.folderFragment) {
+            FolderListFragmentDirections.ActionFolderFragmentToMemoDetailsFragment action = FolderListFragmentDirections.actionFolderFragmentToMemoDetailsFragment(true, false, newMemo.voiceMemo.title);
+            navController.navigate(action);
+        }
     }
 
     @Override
@@ -242,13 +266,37 @@ public class MainActivity extends AppCompatActivity implements NavController.OnD
         getSupportActionBar().setTitle(title);
     }
 
-    public Toolbar getToolbar() {
-        return toolbar;
-    }
 
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        recreate();
     }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.allMemoListFragment :
+                navController.navigate(R.id.allMemoListFragment);
+                drawer.closeDrawer(GravityCompat.START);
+                return true;
+            case R.id.folderFragment:
+                navController.navigate(R.id.folderFragment);
+                drawer.closeDrawer(GravityCompat.START);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean isUsingDarkMode() {
+        int currentMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentMode) {
+            case Configuration.UI_MODE_NIGHT_YES:
+                return true;
+            default:
+                return false;
+        }
+    }
+
 }

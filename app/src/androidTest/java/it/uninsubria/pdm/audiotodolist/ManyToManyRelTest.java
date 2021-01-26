@@ -136,4 +136,37 @@ public class ManyToManyRelTest {
         List<MemoWithTags> found2 = voiceMemoCrossTagsDAO.getAllMemosWithTagsFlat();
         assertThat(found2.size() == 0);
     }
+
+    @Test
+    public void mappingsDeleteTest() {
+        VoiceMemo voiceMemo1 = new VoiceMemo();
+        voiceMemo1.title = "voice_memo1";
+        voiceMemo1.duration = Duration.of(100, ChronoUnit.SECONDS);
+        voiceMemo1.dateTime = LocalDateTime.now();
+        voiceMemo1.path = "testpath";
+        voiceMemo1.folder = DefaultFolders.ALL.name();
+        MemoWithTags memoWithTags = new MemoWithTags();
+        memoWithTags.voiceMemo = voiceMemo1;
+        Tag t1 = new Tag();
+        t1.tagName = "tag1";
+        Tag t2 = new Tag();
+        t2.tagName = "tag2";
+        memoWithTags.tagList = List.of(t1, t2);
+        //Insert in 3 tables
+        memoDAO.insertMemo(voiceMemo1);
+        tagDAO.insertTag(t1, t2);
+        VoiceMemoCrossTags cross1 = new VoiceMemoCrossTags();
+        cross1.tagName = t1.tagName;
+        cross1.title = voiceMemo1.title;
+        VoiceMemoCrossTags cross2 = new VoiceMemoCrossTags();
+        cross2.tagName = t2.tagName;
+        cross2.title = voiceMemo1.title;
+        voiceMemoCrossTagsDAO.insert(cross1, cross2);
+        //Just remove mapping
+        voiceMemoCrossTagsDAO.delete(cross1);
+        List<MemoWithTags> found = voiceMemoCrossTagsDAO.getAllMemosWithTagsFlat();
+        assertThat(found.get(0).tagList.size() == 1);
+        List<VoiceMemoCrossTags> mappings = voiceMemoCrossTagsDAO.readAllMappings();
+        assertThat(mappings.size() == 1);
+    }
 }

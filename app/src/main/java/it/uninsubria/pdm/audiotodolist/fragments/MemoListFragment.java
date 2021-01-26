@@ -1,20 +1,22 @@
 package it.uninsubria.pdm.audiotodolist.fragments;
 
-import android.Manifest;
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
+import android.widget.CompoundButton;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -24,23 +26,36 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.Slider;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import it.uninsubria.pdm.audiotodolist.MainActivity;
+import it.uninsubria.pdm.audiotodolist.MediaPlayerManager;
 import it.uninsubria.pdm.audiotodolist.R;
 import it.uninsubria.pdm.audiotodolist.data.DefaultFolders;
 import it.uninsubria.pdm.audiotodolist.data.MemoWithTags;
 import it.uninsubria.pdm.audiotodolist.database.MemoViewModel;
+import it.uninsubria.pdm.audiotodolist.entity.Tag;
 
-public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClickListener, MemoRecyclerTouchHelper.MemoRecyclerTouchHelperListener {
+public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClickListener,
+        MemoRecyclerTouchHelper.MemoRecyclerTouchHelperListener, MemoAdapter.OnPlayButtonClickListener {
 
-    private MemoViewModel viewModel;
-    private MemoAdapter adapter;
-    private LiveData<List<MemoWithTags>> currentMemoList;
-    private OnActionBarListener listener;
+    private static final String FILE_PROVIDER = "it.uninsubria.pdm.audiotodolist.fileprovider";
+    protected MemoViewModel viewModel;
+    protected MemoAdapter adapter;
+    protected LiveData<List<MemoWithTags>> currentMemoList;
+    protected LiveData<List<Tag>> allTagsObs;
+    protected OnActionBarListener listener;
+    protected ChipGroup filterGroup;
+    protected int previouslyPlayed = -1;
 
     public MemoListFragment() {
         super(R.layout.recycler_view_fragment);
@@ -53,9 +68,9 @@ public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClic
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setHasOptionsMenu(true);
         viewModel = new ViewModelProvider(requireActivity()).get(MemoViewModel.class);
         currentMemoList = viewModel.getVisibleMemos();
+        allTagsObs = viewModel.getAllTags();
     }
 
     @Override
@@ -65,6 +80,7 @@ public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClic
             listener = (OnActionBarListener) context;
         }
     }
+
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -80,6 +96,7 @@ public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClic
         });
         adapter = new MemoAdapter(getContext());
         adapter.setListener(this);
+        adapter.setPlayListener(this);
         currentMemoList.observe(getViewLifecycleOwner(), memos -> {
             if (memos != null) {
                 adapter.setMemoList(memos);
@@ -87,20 +104,30 @@ public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClic
             }
             adapter.setMemoList(new ArrayList<>());
         });
+        filterGroup = view.findViewById(R.id.horizontalScrollView).findViewById(R.id.filter_chip_group);
         RecyclerView recyclerView = view.findViewById(R.id.memo_recycler_view);
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
+        recyclerView.addItemDecoration(new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL));
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         ItemTouchHelper.SimpleCallback itemTouchHelper = new MemoRecyclerTouchHelper(0, ItemTouchHelper.LEFT, this);
         new ItemTouchHelper(itemTouchHelper).attachToRecyclerView(recyclerView);
+        allTagsObs.observe(getViewLifecycleOwner(), tags -> {
+            List<String> tagsAsStrings = tags.stream().map(tag -> tag.tagName).collect(Collectors.toList());
+            initTagChips(tagsAsStrings);
+        });
     }
 
     @Override
     public void onItemClick(View itemView, int position) {
         MemoWithTags memoClicked = adapter.getItem(position);
-        NavController controller = Navigation.findNavController(getActivity(), R.id.memoList);
-        MemoListFragmentDirections.MemoDetailsAction action = MemoListFragmentDirections.memoDetailsAction(false, memoClicked);
+        NavController controller = Navigation.findNavController(requireActivity(), R.id.memoList);
+        if (itemView.getId() == R.id.addTagChip) {
+            MemoListFragmentDirections.MemoDetailsAction action = MemoListFragmentDirections.memoDetailsAction(false, true, memoClicked.voiceMemo.title);
+            controller.navigate(action);
+            return;
+        }
+        MemoListFragmentDirections.MemoDetailsAction action = MemoListFragmentDirections.memoDetailsAction(false, false, memoClicked.voiceMemo.title);
         controller.navigate(action);
     }
 
@@ -112,15 +139,14 @@ public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClic
                 memoViewHolder = (MemoAdapter.MemoViewHolder) viewHolder;
             }
             if (memoViewHolder != null) {
-                final String memoName = memoViewHolder.getTitle().getText().toString();
                 final int itemPosition = memoViewHolder.getAdapterPosition();
+                MemoWithTags memo = adapter.getItem(itemPosition);
                 Context context = viewHolder.itemView.getContext();
                 MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(context);
                 dialogBuilder.setTitle(R.string.delete_note)
                         .setMessage(R.string.delete_memo_confirm)
                         .setPositiveButton(R.string.yes, (dialog, which) -> {
-                            viewModel.deleteMemo(memoName);
-                            //delete file TODO
+                            deleteFile(true, memo);
                         })
                         .setNegativeButton(R.string.no, (dialog, which) -> {
                             adapter.notifyItemChanged(itemPosition);
@@ -130,4 +156,68 @@ public class MemoListFragment extends Fragment implements MemoAdapter.OnItemClic
             }
         }
     }
+
+    @Override
+    public void onPlayButtonClick(View itemView, int position) {
+        if (position == previouslyPlayed) {
+            return;
+        }
+        previouslyPlayed = position;
+        MemoWithTags selectedMemo = adapter.getItem(position);
+        File file = new File(selectedMemo.voiceMemo.path);
+        if (!file.exists()) {
+            missingFileDialog(selectedMemo);
+            return;
+        }
+        Uri uri = FileProvider.getUriForFile(requireContext(), FILE_PROVIDER, file);
+        FrameLayout playerContainer = itemView.findViewById(R.id.playerContainer);
+        MaterialButton play = playerContainer.findViewById(R.id.play);
+        MaterialButton stop = playerContainer.findViewById(R.id.stop);
+        Slider slider = playerContainer.findViewById(R.id.slider);
+        TextView elapsed = playerContainer.findViewById(R.id.durationTrack1);
+        MediaPlayerManager.attachAndPlay(requireContext(), play, stop, slider, elapsed, uri);
+    }
+
+    private void missingFileDialog(MemoWithTags memo) {
+        MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(requireContext());
+        dialogBuilder.setTitle(R.string.file_not_found)
+                .setMessage(R.string.file_not_found_body)
+                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    deleteFile(false, memo);
+                    Toast.makeText(requireContext(), R.string.file_deleted_toast, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.no, (dialog, which) -> {
+                })
+                .create()
+                .show();
+    }
+
+    private void deleteFile(boolean fileInStorage, MemoWithTags memo) {
+        viewModel.deleteMemo(memo.voiceMemo.title);
+        if (fileInStorage) {
+            File file = new File(memo.voiceMemo.path);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
+    }
+
+    protected void initTagChips(List<String> tags) {
+        filterGroup.removeAllViews();
+        viewModel.clearSelectedTags();
+        for (String tag : tags) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(tag);
+            chip.setCheckable(true);
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    viewModel.addToTagSelection(buttonView.getText().toString());
+                } else {
+                    viewModel.removeTagFromSelection(buttonView.getText().toString());
+                }
+            });
+            filterGroup.addView(chip);
+        }
+    }
+
 }

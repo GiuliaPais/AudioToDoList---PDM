@@ -47,14 +47,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
             return textView;
         }
 
-        public ImageView getFolderImg() {
-            return folderImg;
-        }
-
-        public ConstraintLayout getViewBackground() {
-            return viewBackground;
-        }
-
         public ConstraintLayout getViewForeground() {
             return viewForeground;
         }

@@ -5,16 +5,20 @@ import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
+import android.text.format.DateUtils;
+import android.widget.TextView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.slider.Slider;
 
 import java.io.IOException;
+import java.time.Duration;
 
 public class MediaPlayerManager {
     private static MediaPlayerManager instance;
     private MaterialButton playButton, stopButton;
     private Slider slider;
+    private TextView progress;
     private Context context;
     private MediaPlayer mediaPlayer;
     private Handler handler;
@@ -22,16 +26,21 @@ public class MediaPlayerManager {
     private Uri currentUri;
     private boolean isFinished = false;
 
-    private MediaPlayerManager(Context context, MaterialButton playButton, MaterialButton stopButton, Slider slider) {
+    private MediaPlayerManager(Context context, MaterialButton playButton, MaterialButton stopButton, Slider slider, TextView progress) {
         this.playButton = playButton;
         this.stopButton = stopButton;
         this.slider = slider;
         this.context = context;
+        this.progress = progress;
     }
 
-    public static void attach(Context context, MaterialButton play, MaterialButton stop, Slider slider) {
+    private MediaPlayerManager(Context context) {
+        this.context = context;
+    }
+
+    public static void attach(Context context, MaterialButton play, MaterialButton stop, Slider slider, TextView progress, Uri fileUri) {
         if (instance == null) {
-            instance = new MediaPlayerManager(context, play, stop, slider);
+            instance = new MediaPlayerManager(context, play, stop, slider, progress);
             initPlayer();
         } else {
             if (instance.mediaPlayer != null) {
@@ -39,12 +48,13 @@ public class MediaPlayerManager {
                     stop();
                 }
                 reset();
-                initPlayer();
             }
+            initPlayer();
             instance.playButton = play;
             instance.stopButton = stop;
             instance.slider = slider;
             instance.context = context;
+            instance.progress = progress;
         }
         instance.playButton.setOnClickListener(v -> {
             if (instance.playButton.isChecked()) {
@@ -57,11 +67,54 @@ public class MediaPlayerManager {
             stop();
             reset();
         });
-
+        try {
+            setFile(fileUri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static void setFile(Uri uri) throws IOException {
+    public static void attachAndPlay(Context context, MaterialButton play, MaterialButton stop, Slider slider, TextView progress, Uri fileUri) {
+        if (instance == null) {
+            instance = new MediaPlayerManager(context, play, stop, slider, progress);
+            initPlayer();
+        } else {
+            if (instance.mediaPlayer != null) {
+                if (instance.mediaPlayer.isPlaying()) {
+                    stop();
+                }
+                reset();
+            }
+            initPlayer();
+            instance.playButton = play;
+            instance.stopButton = stop;
+            instance.slider = slider;
+            instance.context = context;
+            instance.progress = progress;
+        }
+        instance.playButton.setOnClickListener(v -> {
+            if (instance.playButton.isChecked()) {
+                play();
+            } else {
+                pause();
+            }
+        });
+        instance.stopButton.setOnClickListener(v -> {
+            stop();
+            reset();
+        });
+        try {
+            setFileAndPlay(fileUri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void setFile(Uri uri) throws IOException {
         instance.currentUri = uri;
+        if (instance.mediaPlayer == null) {
+            return;
+        }
         instance.mediaPlayer.setDataSource(instance.context, instance.currentUri);
         instance.mediaPlayer.setOnCompletionListener(mp -> instance.isFinished = true);
         instance.mediaPlayer.setOnPreparedListener(mp -> {
@@ -75,7 +128,7 @@ public class MediaPlayerManager {
         instance.mediaPlayer.prepareAsync();
     }
 
-    public static void setFileAndPlay(Uri uri) throws IOException {
+    private static void setFileAndPlay(Uri uri) throws IOException {
         instance.currentUri = uri;
         instance.mediaPlayer.setDataSource(instance.context, instance.currentUri);
         instance.mediaPlayer.setOnCompletionListener(mp -> instance.isFinished = true);
@@ -107,6 +160,8 @@ public class MediaPlayerManager {
             int pos = instance.mediaPlayer.getCurrentPosition();
             if (pos >= 0 & pos <= instance.slider.getValueTo()) {
                 instance.slider.setValue(pos);
+                Duration current = Duration.ofMillis(pos);
+                instance.progress.setText(DateUtils.formatElapsedTime(current.getSeconds()));
                 if (!instance.isFinished) {
                     instance.handler.postDelayed(instance.updateSliderJob, 1000);
                 } else {
@@ -143,11 +198,21 @@ public class MediaPlayerManager {
     }
 
     private static void reset() {
-        instance.mediaPlayer.reset();
-        instance.mediaPlayer.release();
-        instance.mediaPlayer = null;
-        instance.playButton.setChecked(false);
-        instance.slider.setValue(0);
-        instance.slider.clearOnChangeListeners();
+        if (instance.mediaPlayer != null) {
+            instance.mediaPlayer.reset();
+            instance.mediaPlayer.release();
+            instance.mediaPlayer = null;
+        }
+        if (instance.playButton != null) {
+            instance.playButton.setChecked(false);
+        }
+        if (instance.slider != null) {
+            instance.slider.setValue(0);
+        }
+        Duration current = Duration.ZERO;
+        if (instance.progress != null) {
+            instance.progress.setText(DateUtils.formatElapsedTime(current.getSeconds()));
+        }
     }
+
 }

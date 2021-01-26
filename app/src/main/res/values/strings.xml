@@ -30,4 +30,14 @@
     <string name="details">Details</string>
     <string name="delete_note">Delete memo</string>
     <string name="delete_memo_confirm">Delete this memo?</string>
+    <string name="file_not_found">Warning: file not found</string>
+    <string name="file_not_found_body">This file seems to be missing or could not be found. Delete this memo?</string>
+    <string name="file_deleted_toast">Memo deleted</string>
+    <string name="add_tags_title">Add tags</string>
+    <string name="add_tags_body">Add one or more tags separated by a comma</string>
+    <string name="tag_prompt">Tag1,Tag2,...</string>
+    <string name="filter_menu">Filter</string>
+    <string name="filter_dialog_title">Filter by tag</string>
+    <string name="night_mode">Night mode</string>
+    <string name="pref_night_mode">night_mode</string>
 </resources>

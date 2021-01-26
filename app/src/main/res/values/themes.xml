@@ -69,4 +69,7 @@
         <item name="backgroundTint">@color/secondaryColor</item>
         <item name="tint">@color/secondaryTextColor</item>
     </style>
+    <style name="Widget.AudioTodoList.RecordBottomSheet" parent="">
+        <item name="android:background">@color/sheetBackground</item>
+    </style>
 </resources>

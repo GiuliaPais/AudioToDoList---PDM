@@ -2,5 +2,10 @@
 <resources>
     <style name="Theme.AudioToDoList" parent="Base.Theme.AudioTodoList">
         <item name="android:forceDarkAllowed">false</item>
+        <item name="actionModeBackground">@color/primaryDarkColor</item>
+        <item name="actionMenuTextColor">@color/primaryTextColor</item>
+    </style>
+    <style name="Widget.AudioTodoList.RecordBottomSheet" parent="">
+        <item name="android:background">@color/sheetBackground</item>
     </style>
 </resources>
